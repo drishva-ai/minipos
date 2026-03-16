@@ -9,7 +9,7 @@ import axios from 'axios';
  * In development: set REACT_APP_API_URL=http://localhost:5000
  */
 const http = axios.create({
-  baseURL: process.env.REACT_APP_API_URL,
+  baseURL: import.meta.env.VITE_API_URL,
   timeout: 10_000
 });
 

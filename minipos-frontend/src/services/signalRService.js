@@ -17,7 +17,7 @@ import * as signalR from '@microsoft/signalr';
  * @returns {signalR.HubConnection}
  */
 export function createConnection(token) {
-  const baseUrl = process.env.REACT_APP_API_URL;
+  const baseUrl = import.meta.env.VITE_API_URL;
   return new signalR.HubConnectionBuilder()
     .withUrl(`${baseUrl}/hubs/pos`, {
       accessTokenFactory: () => token
