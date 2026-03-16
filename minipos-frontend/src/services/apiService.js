@@ -3,8 +3,13 @@ import axios from 'axios';
 /**
  * Axios instance — automatically attaches JWT Bearer token to every request.
  * Token is stored in sessionStorage after login.
+ *
+ * baseURL is read from REACT_APP_API_URL env variable.
+ * In production (Render): set REACT_APP_API_URL=https://minipos-backend-api.onrender.com
+ * In development: set REACT_APP_API_URL=http://localhost:5000
  */
 const http = axios.create({
+  baseURL: process.env.REACT_APP_API_URL,
   timeout: 10_000
 });
 

@@ -9,12 +9,17 @@ import * as signalR from '@microsoft/signalr';
  *
  * Reconnect schedule: 0s → 2s → 5s → 10s → 30s → 60s
  *
+ * baseURL is read from REACT_APP_API_URL env variable.
+ * In production (Render): set REACT_APP_API_URL=https://minipos-backend-api.onrender.com
+ * In development: set REACT_APP_API_URL=http://localhost:5000
+ *
  * @param {string} token - JWT token from /api/auth/login
  * @returns {signalR.HubConnection}
  */
 export function createConnection(token) {
+  const baseUrl = process.env.REACT_APP_API_URL;
   return new signalR.HubConnectionBuilder()
-    .withUrl('/hubs/pos', {
+    .withUrl(`${baseUrl}/hubs/pos`, {
       accessTokenFactory: () => token
     })
     .withAutomaticReconnect([0, 2000, 5000, 10000, 30000, 60000])
