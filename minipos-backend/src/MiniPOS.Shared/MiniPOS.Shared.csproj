@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <RootNamespace>MiniPOS.Shared</RootNamespace>
+    <AssemblyName>MiniPOS.Shared</AssemblyName>
+  </PropertyGroup>
+  <ItemGroup>
+    <!-- Only MassTransit contracts — no other dependencies keep this lean -->
+    <PackageReference Include="MassTransit" Version="8.2.3" />
+  </ItemGroup>
+</Project>
