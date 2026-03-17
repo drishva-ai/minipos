@@ -1,78 +1,84 @@
 import axios from 'axios';
 
 /**
- * Axios instance — automatically attaches JWT Bearer token to every request.
- * Token is stored in sessionStorage after login.
+ * Base URLs for each microservice.
  *
- * baseURL is read from REACT_APP_API_URL env variable.
- * In production (Render): set REACT_APP_API_URL=https://minipos-backend-api.onrender.com
- * In development: set REACT_APP_API_URL=http://localhost:5000
+ * Local dev (.env.local):
+ *   VITE_API_URL=http://localhost:5000        ← POS.WebHost
+ *   VITE_ARTICLES_URL=http://localhost:5002   ← Articles.Service
+ *   VITE_BASKET_URL=http://localhost:5001     ← Basket.Service
+ *   VITE_PAYMENT_URL=http://localhost:5003    ← Payment.Service
+ *   VITE_FORECOURT_URL=http://localhost:5004  ← Forecourt.Service
+ *
+ * Production (Render env vars): same keys, different values
  */
-const http = axios.create({
-  baseURL: import.meta.env.VITE_API_URL,
-  timeout: 10_000
-});
+const POS_URL       = import.meta.env.VITE_API_URL;
+const ARTICLES_URL  = import.meta.env.VITE_ARTICLES_URL;
+const BASKET_URL    = import.meta.env.VITE_BASKET_URL;
+const PAYMENT_URL   = import.meta.env.VITE_PAYMENT_URL;
+const FORECOURT_URL = import.meta.env.VITE_FORECOURT_URL;
 
-http.interceptors.request.use(config => {
-  const token = sessionStorage.getItem('pos_token');
-  if (token) config.headers.Authorization = `Bearer ${token}`;
-  return config;
-});
+// ── Axios factory ─────────────────────────────────────────────────────────────
+function createHttp(baseURL) {
+  const instance = axios.create({ baseURL, timeout: 10_000 });
 
-http.interceptors.response.use(
-  res => res,
-  err => {
-    if (err.response?.status === 401) {
-      // Token expired — clear session and reload to login screen
-      sessionStorage.clear();
-      window.location.reload();
+  instance.interceptors.request.use(config => {
+    const token = sessionStorage.getItem('pos_token');
+    if (token) config.headers.Authorization = `Bearer ${token}`;
+    return config;
+  });
+
+  instance.interceptors.response.use(
+    res => res,
+    err => {
+      if (err.response?.status === 401) {
+        sessionStorage.clear();
+        window.location.reload();
+      }
+      return Promise.reject(err);
     }
-    return Promise.reject(err);
-  }
-);
+  );
+
+  return instance;
+}
+
+const http          = createHttp(POS_URL);
+const httpArticles  = createHttp(ARTICLES_URL);
+const httpBasket    = createHttp(BASKET_URL);
+const httpPayment   = createHttp(PAYMENT_URL);
+const httpForecourt = createHttp(FORECOURT_URL);
 
 // ── Auth API  (POS.WebHost :5000) ─────────────────────────────────────────────
 export const AuthApi = {
-  /**
-   * POST /api/auth/login
-   * @param {string} username
-   * @param {string} password
-   * @returns {Promise<{token: string, cashierId: string, role: string}>}
-   */
   login: (username, password) =>
     http.post('/api/auth/login', { username, password }).then(r => r.data),
 
-  /** GET /api/auth/verify — check if stored token is still valid */
   verify: () => http.get('/api/auth/verify').then(r => r.data),
 };
 
 // ── Articles API  (Articles.Service :5002) ────────────────────────────────────
 export const ArticlesApi = {
-  /** GET /api/v1/articles — full product grid */
   getAll: (category) =>
-    http.get('/api/v1/articles', { params: category ? { category } : {} }).then(r => r.data),
+    httpArticles.get('/api/v1/articles', { params: category ? { category } : {} }).then(r => r.data),
 
-  /** GET /api/v1/articles/categories */
   getCategories: () =>
-    http.get('/api/v1/articles/categories').then(r => r.data),
+    httpArticles.get('/api/v1/articles/categories').then(r => r.data),
 
-  /** GET /api/v1/articles/barcode/:barcode */
   getByBarcode: (barcode) =>
-    http.get(`/api/v1/articles/barcode/${barcode}`).then(r => r.data),
+    httpArticles.get(`/api/v1/articles/barcode/${barcode}`).then(r => r.data),
 };
 
 // ── Forecourt API  (Forecourt.Service :5004) ──────────────────────────────────
 export const ForecourtApi = {
-  /** GET /api/forecourt/pumps — initial pump state on page load */
-  getPumps: () => http.get('/api/forecourt/pumps').then(r => r.data),
+  getPumps: () => httpForecourt.get('/api/forecourt/pumps').then(r => r.data),
 };
 
-// ── Basket API  (Basket.Service :5001 — read-only debug) ──────────────────────
+// ── Basket API  (Basket.Service :5001) ────────────────────────────────────────
 export const BasketApi = {
-  get: (basketId) => http.get(`/api/basket/${basketId}`).then(r => r.data),
+  get: (basketId) => httpBasket.get(`/api/basket/${basketId}`).then(r => r.data),
 };
 
-// ── Payment API  (Payment.Service :5003 — transaction history) ────────────────
+// ── Payment API  (Payment.Service :5003) ──────────────────────────────────────
 export const PaymentApi = {
-  getTransactions: () => http.get('/api/payment/transactions').then(r => r.data),
+  getTransactions: () => httpPayment.get('/api/payment/transactions').then(r => r.data),
 };
